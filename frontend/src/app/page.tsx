@@ -39,11 +39,14 @@ export default function Dashboard() {
   const handleWebSocketEvent = useCallback((event: WebSocketEvent) => {
     const { type, data } = event;
     const timestamp = new Date().toLocaleTimeString();
+    // Safely coerce unknown event data fields to strings
+    const toStr = (v: unknown, fallback = "") =>
+      typeof v === "string" ? v : v != null ? String(v) : fallback;
 
     setSteps(prev => {
       // 1. Map thinking/analysis
       if (type === "Thinking" || type === "NLU_Success") {
-        const content = type === "Thinking" ? data.message : "NLU Analysis complete.";
+        const content = type === "Thinking" ? toStr(data.message) : "NLU Analysis complete.";
         // Avoid duplicate identical thinking blocks
         if (prev.length > 0 && prev[prev.length - 1].content === content) return prev;
         return [...prev, { type: "Reasoning", content, timestamp }];
@@ -51,13 +54,13 @@ export default function Dashboard() {
 
       // 2. Map Screen Agent actions
       if (type === "AgentStep" || type === "ActionStarted" || type === "ScreenTaskStarted") {
-        const content = data.desc || data.action || data.task || "Executing action...";
+        const content = toStr(data.desc || data.action || data.task, "Executing action...");
         return [...prev, { type: "Action", content, timestamp }];
       }
 
       // 3. Map Results
       if (type === "ActionResult" || type === "AgentStepDone" || type === "AgentDone") {
-        const content = data.result || data.message || "Action completed.";
+        const content = toStr(data.result || data.message, "Action completed.");
         // Update the last "Action" step with result if possible, or add new
         if (prev.length > 0 && prev[prev.length - 1].type === "Action") {
           const last = prev[prev.length - 1];
@@ -70,7 +73,7 @@ export default function Dashboard() {
       if (type === "AgentQuestion" || type === "REQUIRE_HELP") {
         return [...prev, {
           type: "Decision",
-          content: data.prompt || data.question,
+          content: toStr(data.prompt || data.question, "Agent requires input."),
           timestamp,
           attachment: { type: "options", data: [{ label: "Reply to Agent", value: "REPLY_TRIGGER" }] }
         }];
@@ -140,9 +143,10 @@ export default function Dashboard() {
       }
     } catch (e) {
       if (!cancelled) {
+        const errorMsg = e instanceof Error ? e.message : String(e);
         setSteps(prev => [...prev, {
           type: "Action",
-          content: "System Error: " + e,
+          content: "❌ Error: " + errorMsg,
           timestamp: new Date().toLocaleTimeString()
         }]);
       }

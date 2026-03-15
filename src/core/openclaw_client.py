@@ -25,18 +25,8 @@ logger = logging.getLogger(__name__)
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.json")
 
 def _get_openclaw_home() -> str:
-    """Check user home first, then project."""
-    home_path = os.path.join(os.path.expanduser("~"), ".openclaw")
-    if os.path.isfile(os.path.join(home_path, "openclaw.json")):
-        return home_path
-
-    # Fallback: project-level .openclaw
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    project_path = os.path.join(project_root, ".openclaw")
-    if os.path.isfile(os.path.join(project_path, "openclaw.json")):
-        return project_path
-
-    return home_path
+    """Always use the standard OpenClaw home directory."""
+    return os.path.join(os.path.expanduser("~"), ".openclaw")
 
 def _get_openclaw_config_path() -> str:
     return os.path.join(_get_openclaw_home(), "openclaw.json")
@@ -76,6 +66,7 @@ def get_gateway_port() -> int:
 
 def get_auth_token() -> str | None:
     """Get the auth token from openclaw.json, respecting mode."""
+    # We no longer check environment for tokens to match user's manual behavior
     oc_config = load_openclaw_config()
     auth_cfg = oc_config.get("gateway", {}).get("auth", {})
     if auth_cfg.get("mode") == "none":
@@ -102,7 +93,7 @@ def send_to_openclaw(user_text: str, channel: str = "nexus", sender: str = "main
     token = get_auth_token()
     ws_url = f"ws://127.0.0.1:{port}"
 
-    masked_token = (token[:4] + "..." + token[-4:]) if token else "None"
+    masked_token = (token[:4] + "..." + token[-4:]) if token and len(token) >= 8 else (token or "None")
     logger.info(f"🦞 Routing to OpenClaw via WebSocket: port={port}, token={masked_token}, msg={user_text[:50]}...")
 
     result_text = ""

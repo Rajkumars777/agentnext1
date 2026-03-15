@@ -13,12 +13,32 @@ export async function getApiBase(): Promise<string> {
     if (resolvedApiBase) return resolvedApiBase;
 
     // Fallback for web-only development
-    if (typeof window !== "undefined" && !resolvedApiBase) {
+    if (typeof window !== "undefined") {
         resolvedApiBase = "http://127.0.0.1:8000";
         return resolvedApiBase;
     }
 
     return portPromise;
+}
+
+/**
+ * Throws a descriptive error if the HTTP response is not OK.
+ * Tries to extract JSON { detail } message from FastAPI error bodies.
+ */
+async function checkResponse(res: Response): Promise<Response> {
+    if (!res.ok) {
+        let detail = `HTTP ${res.status} ${res.statusText}`;
+        try {
+            const body = await res.json();
+            if (body?.detail) detail = String(body.detail);
+            else if (body?.message) detail = String(body.message);
+            else if (typeof body === "string") detail = body;
+        } catch {
+            // Body is not JSON — use status text
+        }
+        throw new Error(detail);
+    }
+    return res;
 }
 
 // Store active abort controllers for cancellation
@@ -36,6 +56,7 @@ export function getCurrentTaskId(): string | null {
 export async function fetchHealth() {
     const base = await getApiBase();
     const res = await fetch(`${base}/`);
+    await checkResponse(res);
     return res.json();
 }
 
@@ -56,7 +77,7 @@ export async function chatWithAgent(message: string, taskId?: string) {
             body: JSON.stringify({ input: message, task_id: currentTaskId }),
             signal: currentAbortController.signal
         });
-        if (!res.ok) throw new Error("Agent failed to respond");
+        await checkResponse(res);
         return res.json();
     } catch (error: unknown) {
         if (error instanceof Error && error.name === 'AbortError') {
@@ -95,17 +116,19 @@ export async function cancelOperation(): Promise<boolean> {
 
 export async function listFiles(directory: string = ".") {
     const base = await getApiBase();
-    const res = await fetch(`${base}/tools/files?directory=${directory}`);
+    const res = await fetch(`${base}/tools/files?directory=${encodeURIComponent(directory)}`);
+    await checkResponse(res);
     return res.json();
 }
 
-export async function resumeTask(taskId: string, data: any) {
+export async function resumeTask(taskId: string, data: unknown) {
     const base = await getApiBase();
     const res = await fetch(`${base}/agent/resume`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ task_id: taskId, data }),
     });
+    await checkResponse(res);
     return res.json();
 }
 
@@ -116,6 +139,7 @@ export async function browseUrl(url: string) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
     });
+    await checkResponse(res);
     return res.json();
 }
 
@@ -124,6 +148,7 @@ export async function browseUrl(url: string) {
 export async function getSettings() {
     const base = await getApiBase();
     const res = await fetch(`${base}/agent/settings`);
+    await checkResponse(res);
     return res.json();
 }
 
@@ -134,7 +159,7 @@ export async function saveSettings(settings: Record<string, string>) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
     });
-    if (!res.ok) throw new Error("Failed to save settings");
+    await checkResponse(res);
     return res.json();
 }
 
@@ -147,18 +172,21 @@ export async function startOpenClawGateway(port?: number) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(port ? { port } : {}),
     });
+    await checkResponse(res);
     return res.json();
 }
 
 export async function stopOpenClawGateway() {
     const base = await getApiBase();
     const res = await fetch(`${base}/openclaw/gateway/stop`, { method: "POST" });
+    await checkResponse(res);
     return res.json();
 }
 
 export async function getOpenClawStatus() {
     const base = await getApiBase();
     const res = await fetch(`${base}/openclaw/status`);
+    await checkResponse(res);
     return res.json();
 }
 
@@ -169,6 +197,7 @@ export async function pairOpenClawChannel(channel: string) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ channel }),
     });
+    await checkResponse(res);
     return res.json();
 }
 
@@ -179,22 +208,24 @@ export async function logoutOpenClawChannel(channel: string) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ channel }),
     });
+    await checkResponse(res);
     return res.json();
 }
 
 export async function getOpenClawConfig() {
     const base = await getApiBase();
     const res = await fetch(`${base}/openclaw/config`);
+    await checkResponse(res);
     return res.json();
 }
 
-export async function saveOpenClawConfig(config: any) {
+export async function saveOpenClawConfig(config: unknown) {
     const base = await getApiBase();
     const res = await fetch(`${base}/openclaw/config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config),
     });
-    if (!res.ok) throw new Error("Failed to save OpenClaw config");
+    await checkResponse(res);
     return res.json();
 }

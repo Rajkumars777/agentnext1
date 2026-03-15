@@ -11,9 +11,10 @@ load_dotenv()
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Set event loop policy for Windows
+# Set ProactorEventLoop for Windows (asyncio.set_event_loop_policy deprecated in 3.12+)
 if sys.platform == 'win32':
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    loop = asyncio.ProactorEventLoop()
+    asyncio.set_event_loop(loop)
 
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
@@ -25,6 +26,7 @@ from src.api.routers import agent as agent_router
 from src.api.routers import events as events_router
 from src.api.routers import settings as settings_router
 from src.api.routers import openclaw as openclaw_router
+from src.api.routers import tools as tools_router
 
 from pydantic import BaseModel
 
@@ -39,6 +41,10 @@ async def lifespan(app: FastAPI):
     
     # Auto-start OpenClaw gateway
     try:
+        # Check if .env exists
+        if not os.path.exists(".env"):
+            logger.warning("⚠️ .env file missing. API keys may not be loaded.")
+            
         from src.core.openclaw_process import start_gateway
         gw_result = start_gateway()
         logger.info(f"OpenClaw Gateway: {gw_result.get('message', 'unknown')}")
@@ -66,6 +72,7 @@ app.include_router(agent_router.router)
 app.include_router(events_router.router)
 app.include_router(settings_router.router)
 app.include_router(openclaw_router.router)
+app.include_router(tools_router.router)
 
 @app.get("/")
 async def read_root():

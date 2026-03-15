@@ -10,7 +10,7 @@ Endpoints for controlling the OpenClaw gateway process and channel pairing:
 - POST /openclaw/config            → Update openclaw.json config
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 import json
@@ -134,6 +134,8 @@ async def update_openclaw_config(update: OpenClawConfigUpdate):
         json.dump(config, f, indent=2)
 
     return {"success": True, "message": "OpenClaw config updated"}
+
+
 @router.post("/channel/logout")
 async def logout_openclaw_channel(request: ChannelPairRequest):
     """Log out of a channel account."""

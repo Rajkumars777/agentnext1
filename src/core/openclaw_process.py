@@ -34,20 +34,20 @@ def _get_openclaw_home() -> str:
     if _openclaw_home:
         return _openclaw_home
 
-    # OpenClaw default: ~/.openclaw
-    home_path = os.path.join(os.path.expanduser("~"), ".openclaw")
-    if os.path.isfile(os.path.join(home_path, "openclaw.json")):
-        _openclaw_home = home_path
-        return _openclaw_home
-
-    # Fallback: project-level .openclaw
+    # Priority 1: project-level .openclaw
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     project_path = os.path.join(project_root, ".openclaw")
     if os.path.isfile(os.path.join(project_path, "openclaw.json")):
         _openclaw_home = project_path
         return _openclaw_home
 
-    _openclaw_home = home_path  # default even if not found
+    # Priority 2: ~/.openclaw
+    home_path = os.path.join(os.path.expanduser("~"), ".openclaw")
+    if os.path.isfile(os.path.join(home_path, "openclaw.json")):
+        _openclaw_home = home_path
+        return _openclaw_home
+
+    _openclaw_home = project_path  # default even if not found
     return _openclaw_home
 
 
@@ -128,25 +128,12 @@ def start_gateway(port: int | None = None) -> dict:
     _gateway_log.clear()
     _qr_data = None
 
-    openclaw_home = _get_openclaw_home()
-
-    cmd = f"openclaw gateway --port {_gateway_port} --allow-unconfigured"
+    cmd = f"openclaw gateway run --port {_gateway_port} --allow-unconfigured"
 
     logger.info(f"[OpenClaw] Starting gateway: {cmd}")
     _gateway_log.append(f"[NEXUS] Starting: {cmd}")
 
     try:
-        env = os.environ.copy()
-        env["OPENCLAW_HOME"] = openclaw_home
-        # Give OpenClaw more memory on Windows to prevent heap out of memory crashes
-        env["NODE_OPTIONS"] = "--max-old-space-size=4096"
-
-        # Write stdout/stderr to log files so pipe buffer can't kill the process
-        log_dir = os.path.join(openclaw_home, "logs")
-        os.makedirs(log_dir, exist_ok=True)
-        stdout_log = open(os.path.join(log_dir, "gateway-stdout.log"), "w")
-        stderr_log = open(os.path.join(log_dir, "gateway-stderr.log"), "w")
-
         # On Windows, use CREATE_NEW_PROCESS_GROUP so the child survives independently
         creation_flags = 0
         if os.name == "nt":
@@ -155,37 +142,44 @@ def start_gateway(port: int | None = None) -> dict:
         _process = subprocess.Popen(
             cmd,
             shell=True,
-            stdout=stdout_log,
-            stderr=stderr_log,
-            env=env,
-            cwd=os.path.dirname(openclaw_home),
             creationflags=creation_flags,
         )
 
-        # Wait for gateway to become responsive (up to 15 seconds)
-        for i in range(15):
-            time.sleep(1)
-            if _is_gateway_alive(_gateway_port):
-                _status = "running"
-                _gateway_log.append(f"[NEXUS] ✅ Gateway is live on port {_gateway_port}")
-                logger.info(f"[OpenClaw] Gateway is live on port {_gateway_port}")
-                return {"success": True, "message": f"Gateway started on port {_gateway_port}", "status": "running", "port": _gateway_port}
-            if _process.poll() is not None:
-                # Read the error log
-                stderr_log.close()
-                try:
-                    with open(os.path.join(log_dir, "gateway-stderr.log"), "r") as f:
-                        err = f.read().strip()[-300:]
-                except Exception:
-                    err = "unknown error"
-                _status = "error"
-                _gateway_log.append(f"[NEXUS] ❌ Gateway failed: {err}")
-                return {"success": False, "message": f"Gateway exited: {err}", "status": _status}
+        try:
+            # Wait for gateway to become responsive (up to 15 seconds)
+            for i in range(15):
+                time.sleep(1)
+                if _is_gateway_alive(_gateway_port):
+                    _status = "running"
+                    _gateway_log.append(f"[NEXUS] ✅ Gateway is live on port {_gateway_port}")
+                    logger.info(f"[OpenClaw] Gateway is live on port {_gateway_port}")
+                    return {"success": True, "message": f"Gateway started on port {_gateway_port}", "status": "running", "port": _gateway_port}
+                if _process.poll() is not None:
+                    stderr_log.flush()
+                    stderr_log.close()
+                    try:
+                        with open(os.path.join(log_dir, "gateway-stderr.log"), "r") as f:
+                            err = f.read().strip()[-300:]
+                    except Exception:
+                        err = "unknown error"
+                    _status = "error"
+                    _gateway_log.append(f"[NEXUS] ❌ Gateway failed: {err}")
+                    return {"success": False, "message": f"Gateway exited: {err}", "status": _status}
 
-        # 15s passed, process alive but port not responding yet
-        _status = "starting"
-        _gateway_log.append("[NEXUS] Gateway process running, waiting for port...")
-        return {"success": True, "message": f"Gateway process started (PID {_process.pid}), waiting for port...", "status": "starting", "port": _gateway_port}
+            # 15s passed, process alive but port not responding yet
+            _status = "starting"
+            _gateway_log.append("[NEXUS] Gateway process running, waiting for port...")
+            return {"success": True, "message": f"Gateway process started (PID {_process.pid}), waiting for port...", "status": "starting", "port": _gateway_port}
+        finally:
+            # Always close the file handles so OS file descriptors are not leaked
+            try:
+                stdout_log.close()
+            except Exception:
+                pass
+            try:
+                stderr_log.close()
+            except Exception:
+                pass
 
     except FileNotFoundError:
         _status = "error"

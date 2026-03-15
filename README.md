@@ -1,6 +1,6 @@
 # NEXUS - Next-Gen AI Agent
 
-A powerful AI-powered desktop automation and RPA (Robotic Process Automation) agent that understands natural language commands to control your computer, manage files, manipulate Excel spreadsheets, and more.
+NEXUS is a powerful AI-powered desktop automation and Robotic Process Automation (RPA) agent. It serves to empower users by allowing them to control their computer, manage files, manipulate spreadsheets, extract textual data from documents, and automate web operations through natural language commands or voice dictation.
 
 ---
 
@@ -98,11 +98,15 @@ npm run dev
 ### Step 6: Use the App
 
 1. Open `http://localhost:3000` in your browser
-2. Type or click the mic to speak commands like:
+2. Provide commands through:
+   - **Text Field**: Typing instructions manually into the input console.
+   - **Voice**: By clicking the microphone interface, speaking locally (up to 5 seconds), verifying the transcribed text, and committing the command for execution.
+3. Example commands:
    - `"open notepad"`
    - `"delete sample.xlsx"`
    - `"rename old.txt to new.txt"`
    - `"add a row to budget.xlsx with name John and amount 500"`
+4. The server asynchronously executes user intents and returns the operative output.
 
 ---
 
@@ -153,104 +157,45 @@ AI-agent---LTID/
 │   │   └── routers/
 │   │       ├── agent.py             # /agent/* endpoints
 │   │       ├── events.py            # SSE event streaming
-│   │       ├── tools.py             # /tools/* endpoints
-│   │       └── voice.py             # Voice transcription endpoint
+│   │       ├── openclaw.py          # OpenClaw integration endpoints
+│   │       └── settings.py          # /settings/* endpoints
 │   │
 │   ├── core/                        # 🧠 AI brain
 │   │   ├── agent.py                 # Main agent routing logic
-│   │   ├── execution/               # Task planning & execution
-│   │   │   ├── orchestrator.py      # Unified task orchestrator
-│   │   │   ├── multistep_planner.py # Multi-step task planner
-│   │   │   ├── multistep_executor.py# Plan executor
-│   │   │   ├── handlers.py          # Action handlers (DYNAMIC_CODE, etc.)
-│   │   │   ├── nlu.py               # Natural Language Understanding
-│   │   │   ├── confirmation_handler.py # User confirmation flow
-│   │   │   ├── interaction.py       # Interaction manager
-│   │   │   ├── system_utils.py      # System utility helpers
-│   │   │   └── task_memory.py       # Task state memory
-│   │   ├── intelligence/            # Code & report generation
-│   │   │   ├── code_generator.py    # Dynamic Python code generation
-│   │   │   ├── report_generator.py  # Report creation
-│   │   │   └── app_templates.py     # App scaffolding templates
-│   │   ├── llm/                     # LLM adapters
-│   │   │   ├── agent_llm.py         # Core LLM interface
-│   │   │   └── openrouter_adapter.py# OpenRouter multi-model adapter
+│   │   ├── openclaw_client.py       # Client for OpenClaw process
+│   │   ├── openclaw_process.py      # OpenClaw background process
 │   │   └── security/                # Security & credential management
 │   │       ├── manager.py           # Security manager
 │   │       └── credential_handler.py# API key/credential handler
 │   │
-│   ├── models/                      # 📐 Data models
-│   │   ├── document.py              # Document schema
-│   │   └── report_schema.py         # Report schema
-│   │
-│   ├── services/                    # ⚙️ Feature services
-│   │   ├── browser/                 # Web automation
-│   │   │   ├── agent.py             # Browser agent
-│   │   │   └── intelligent_web_automation.py
-│   │   ├── data/                    # Data & file processing
-│   │   │   ├── excel.py             # Excel read/write/style (openpyxl, polars)
-│   │   │   ├── retriever.py         # Data retrieval (stocks, market data)
-│   │   │   ├── document_ops.py      # PDF/Word operations
-│   │   │   └── file_search.py       # Fast file search with caching
-│   │   ├── desktop/                 # Desktop automation
-│   │   │   ├── screen_agent.py      # Screen-based AI agent
-│   │   │   ├── automation.py        # PyAutoGUI automation
-│   │   │   ├── generative_agent.py  # Generative desktop agent
-│   │   │   ├── ops.py               # Desktop operations
-│   │   │   ├── file_index.py        # File indexing & cache
-│   │   │   └── agent_s/             # Agent-S integration
-│   │   │       └── integration.py
-│   │   └── vision/                  # Vision/screen analysis
-│   │       └── engine.py
-│   │
-│   ├── tools/                       # 🔧 Tool registry & generators
-│   │   ├── core_tools.py            # Core built-in tools
-│   │   ├── document_intelligence_tools.py # Document AI tools
-│   │   ├── generator.py             # Dynamic tool generator
-│   │   ├── registry.py              # Tool registry loader
-│   │   ├── registry.json            # Tool metadata registry
-│   │   └── generated/               # Auto-generated tool scripts
-│   │       ├── open_excel_application.py
-│   │       ├── compress_excel_file.py
-│   │       └── ...
-│   │
-│   └── utils/                       # 🛠️ Shared utilities
-│       └── utils/
-│           └── resolver.py          # Path & target resolver
+│   ├── requirements.txt             # Python dependencies
+│   └── .env                         # API keys (create this)
 │
 ├── frontend/                        # Next.js React Frontend
 │   └── src/
 │       ├── app/                     # Next.js App Router pages
 │       │   ├── page.tsx             # Main dashboard page
-│       │   ├── layout.tsx           # Root layout
-│       │   ├── globals.css          # Global CSS
-│       │   └── overlay/             # Overlay UI route
-│       │       ├── page.tsx
-│       │       └── layout.tsx
+│       │   └── layout.tsx           # Root layout
+│       │
 │       ├── components/              # React components
 │       │   ├── AriaAssistant.tsx    # 🎙️ Voice assistant UI (Aria)
 │       │   ├── InputConsole.tsx     # Command input + mic button
 │       │   ├── TimelineFeed.tsx     # Live task event timeline
 │       │   ├── RecentsHistory.tsx   # Recent commands history
 │       │   ├── ResultCard.tsx       # Task result display card
+│       │   ├── SettingsPanel.tsx    # App settings panel
 │       │   ├── VoiceControlPanel.tsx# Voice control panel
-│       │   ├── VoiceMicIndicator.tsx# Mic status indicator
-│       │   ├── VoiceWaveform.tsx    # Waveform animation
-│       │   ├── WakeWordAnimation.tsx# Wake word visual feedback
-│       │   ├── BrowserViewport.tsx  # Embedded browser view
-│       │   ├── HeroSection.tsx      # Landing hero section
-│       │   ├── TauriProvider.tsx    # Tauri desktop bridge
-│       │   └── ui/                  # Reusable UI primitives
+│       │   └── ...                  # Other UI components
+│       │
 │       ├── hooks/                   # Custom React hooks
 │       ├── lib/                     # Utility libraries
-│       ├── styles/                  # Component styles
-│       │   └── aria.css             # Aria assistant styles
-│       └── types/                   # TypeScript type definitions
+│       ├── styles/                  # Global and component styles
+│       └── types/                   # TypeScript definitions
 │
-├── requirements.txt                 # Python dependencies
-├── .env                             # API keys (create this)
-├── .gitignore
+├── NEXUS_Documentation.md           # Comprehensive project details
+├── requirements.txt                 # Project-level dependencies
 └── README.md                        # This file
+```
 ```
 
 ---
@@ -294,7 +239,17 @@ npm install
 
 - Make sure `.env` file exists in `src/` folder
 - Check that API key is correctly set (no extra spaces)
-- ---
+
+### Port Conflict Errors
+
+- Ensure ports `3000` (Frontend) or `8000` (Backend) are not currently in use by other applications.
+
+### Voice Transcription Initial Delay
+
+- Faster Whisper models are cached locally. The initial boot demands an active internet connection to securely fetch model weights locally.
+- Permit microphone inputs inside the browser space.
+
+---
 
 ## 🤝 Contributing
 

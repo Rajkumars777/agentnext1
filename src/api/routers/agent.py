@@ -20,6 +20,10 @@ class AgentRequest(BaseModel):
 class CancelRequest(BaseModel):
     task_id: str
 
+class ResumeRequest(BaseModel):
+    task_id: str
+    data: Any
+
 @router.post("/chat")
 async def chat_with_agent(request: AgentRequest):
     """Run the AI Agent with the given input. Returns execution steps."""
@@ -58,9 +62,10 @@ async def chat_with_agent(request: AgentRequest):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        # Clean up active task
-        if task_id in active_tasks:
-            del active_tasks[task_id]
+        # Clean up active task tracking
+        active_tasks.pop(task_id, None)
+        # Clean up cancelled_tasks to prevent unbounded memory growth
+        cancelled_tasks.discard(task_id)
 
 @router.post("/cancel")
 async def cancel_operation(request: CancelRequest):
@@ -76,6 +81,13 @@ async def cancel_operation(request: CancelRequest):
         return {"success": True, "message": f"Task {task_id} cancelled"}
     
     return {"success": True, "message": f"Task {task_id} marked for cancellation"}
+
+@router.post("/resume")
+async def resume_operation(request: ResumeRequest):
+    """Resume a task that is waiting for input (e.g., confirmation)."""
+    # In the OpenClaw architecture, interactive tasks manage their own state.
+    # This endpoint provides a hook for future native interaction handlers.
+    return {"success": True, "message": "Interaction received", "task_id": request.task_id}
 
 @router.get("/status")
 async def get_status():
