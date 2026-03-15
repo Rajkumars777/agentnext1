@@ -52,7 +52,17 @@ This will:
 
 Open `src/.env` and add your API keys. Refer to `.env.example` in the root for a template.
 
-### Step 6: Run the App
+### Step 6: Build Tauri Desktop App (Optional)
+
+If you want a native desktop window instead of a browser tab, run:
+
+```powershell
+.\build_tauri.bat
+```
+
+The resulting EXE will be in `frontend/src-tauri/target/release/bundle/msi/`.
+
+### Step 7: Run the App
 
 Run the following command to start both the backend and frontend:
 
