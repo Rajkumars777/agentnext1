@@ -20,11 +20,12 @@ NEXUS is a powerful AI-powered desktop automation and Robotic Process Automation
 
 ### Prerequisites
 
-| Requirement | Version |
-| ----------- | ------- |
 | Python      | 3.10+   |
 | Node.js     | 18+     |
 | npm         | 9+      |
+
+> [!NOTE]
+> OpenClaw is now a project dependency. Running `npm install` in the `frontend/` directory will automatically install it.
 
 ### Step 1: Clone the Repository
 

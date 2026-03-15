@@ -128,10 +128,19 @@ def start_gateway(port: int | None = None) -> dict:
     _gateway_log.clear()
     _qr_data = None
 
-    cmd = f"openclaw gateway run --port {_gateway_port} --allow-unconfigured"
+    cmd = f"npx openclaw gateway run --port {_gateway_port} --allow-unconfigured"
 
     logger.info(f"[OpenClaw] Starting gateway: {cmd}")
     _gateway_log.append(f"[NEXUS] Starting: {cmd}")
+
+    # Set up log directory and files
+    log_dir = os.path.join(_get_openclaw_home(), "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    stdout_path = os.path.join(log_dir, "gateway-stdout.log")
+    stderr_path = os.path.join(log_dir, "gateway-stderr.log")
+
+    stdout_log = open(stdout_path, "a", encoding="utf-8")
+    stderr_log = open(stderr_path, "a", encoding="utf-8")
 
     try:
         # On Windows, use CREATE_NEW_PROCESS_GROUP so the child survives independently
@@ -142,7 +151,10 @@ def start_gateway(port: int | None = None) -> dict:
         _process = subprocess.Popen(
             cmd,
             shell=True,
+            stdout=stdout_log,
+            stderr=stderr_log,
             creationflags=creation_flags,
+            text=True
         )
 
         try:
@@ -263,15 +275,15 @@ def start_channel_pairing(channel: str = "whatsapp") -> dict:
 
     openclaw_home = _get_openclaw_home()
     if channel == "whatsapp":
-        cmd = f"openclaw channels login --channel {channel}"
+        cmd = f"npx openclaw channels login --channel {channel}"
     else:
         # For Telegram/Slack, use 'add' with tokens if available in config
         config = _get_config()
         token = config.get("channels", {}).get(channel, {}).get("token")
         if token:
-            cmd = f"openclaw channels add --channel {channel} --token {token}"
+            cmd = f"npx openclaw channels add --channel {channel} --token {token}"
         else:
-            cmd = f"openclaw channels add --channel {channel}"
+            cmd = f"npx openclaw channels add --channel {channel}"
 
     logger.info(f"[OpenClaw] Starting channel pairing: {cmd}")
 
@@ -330,7 +342,7 @@ def logout_channel(channel: str = "whatsapp") -> dict:
     Log out of a channel by running `openclaw channels logout --channel <channel>`.
     """
     openclaw_home = _get_openclaw_home()
-    cmd = f"openclaw channels logout --channel {channel}"
+    cmd = f"npx openclaw channels logout --channel {channel}"
 
     logger.info(f"[OpenClaw] Logging out channel: {cmd}")
 
