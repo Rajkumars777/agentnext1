@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
     try:
         # Check if .env exists
         if not os.path.exists(".env"):
-            logger.warning("⚠️ .env file missing. API keys may not be loaded.")
+            logger.warning("⚠️ .env file missing in 'src/'. Please create it with your API keys (see .env.example at root).")
             
         from src.core.openclaw_process import start_gateway
         gw_result = start_gateway()

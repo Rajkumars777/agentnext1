@@ -34,80 +34,31 @@ git clone https://github.com/Rajkumars777/AI-agent---LTID.git
 cd AI-agent---LTID
 ```
 
-### Step 2: Setup Backend
+### Step 2-4: Automated Setup (Windows)
+
+Just run the following command in the root directory:
 
 ```powershell
-# Navigate to src
-cd src
-
-# Create virtual environment (recommended)
-python -m venv venv
-.\venv\Scripts\activate  # Windows
-# source venv/bin/activate  # Linux/Mac
-
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Install Playwright browsers (for web automation)
-playwright install
+.\setup.bat
 ```
 
-### Step 3: Configure Environment
+This will:
+- Create a virtual environment and install Python dependencies.
+- Install Playwright browsers.
+- Install Node.js dependencies.
+- Create a template `.env` file in `src/`.
 
-Create a `.env` file in the `src/` folder:
+### Step 5: Configure Environment
 
-```env
-# Required: Choose ONE LLM provider
+Open `src/.env` and add your API keys. Refer to `.env.example` in the root for a template.
 
-# Option 1: OpenRouter (Recommended - works with many models)
-OPENROUTER_API_KEY=your_openrouter_api_key
+### Step 6: Run the App
 
-# Option 2: Google Gemini
-GEMINI_API_KEY=your_gemini_api_key
-```
-
-Get your API key:
-
-- **OpenRouter**: https://openrouter.ai/keys (supports GPT-4, Claude, Llama, etc.)
-- **Gemini**: https://makersuite.google.com/app/apikey
-
-### Step 4: Run Backend
+Run the following command to start both the backend and frontend:
 
 ```powershell
-cd src
-python main.py
+.\run.bat
 ```
-
-✅ Backend runs on: `http://localhost:8000`
-
-### Step 5: Setup & Run Frontend
-
-Open a **new terminal**:
-
-```powershell
-cd frontend
-
-# Install Node dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-✅ Frontend runs on: `http://localhost:3000`
-
-### Step 6: Use the App
-
-1. Open `http://localhost:3000` in your browser
-2. Provide commands through:
-   - **Text Field**: Typing instructions manually into the input console.
-   - **Voice**: By clicking the microphone interface, speaking locally (up to 5 seconds), verifying the transcribed text, and committing the command for execution.
-3. Example commands:
-   - `"open notepad"`
-   - `"delete sample.xlsx"`
-   - `"rename old.txt to new.txt"`
-   - `"add a row to budget.xlsx with name John and amount 500"`
-4. The server asynchronously executes user intents and returns the operative output.
 
 ---
 
