@@ -23,8 +23,8 @@ export default function TauriProvider({
                     const { Command } = await import("@tauri-apps/plugin-shell");
 
                     // Start the sidecar
-                    addLog("Attempting to spawn sidecar: binaries/ai-engine");
-                    const command = Command.sidecar("binaries/ai-engine");
+                    addLog("Attempting to spawn sidecar: ai-engine");
+                    const command = Command.sidecar("ai-engine");
 
                     // Listen for stdout/stderr for debugging
                     command.on("close", (data) => {
@@ -45,6 +45,7 @@ export default function TauriProvider({
 
                     // Wait for the backend to be ready before resolving
                     addLog("Waiting for backend health check...");
+                    // Try root endpoint or health endpoint
                     await waitForBackend(8000, 30, addLog);
                     setBackendPort(8000);
                     setIsReady(true);

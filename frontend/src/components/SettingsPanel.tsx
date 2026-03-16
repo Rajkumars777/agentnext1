@@ -62,7 +62,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         setGwModel(statusData.model || "");
         setGwChannels(statusData.channels || {});
         setQrData(statusData.qr_data || null);
-        
+
         const tgToken = statusData.channels?.telegram?.token || "";
         setTelegramToken(tgToken);
         const slToken = statusData.channels?.slack?.token || "";
@@ -128,7 +128,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
   const handleLogoutChannel = async () => {
     if (!confirm(`Are you sure you want to log out of ${pairingChannel}? This will disconnect the current account.`)) return;
-    
+
     setSaving(true);
     setMessage("");
     try {
@@ -207,7 +207,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
       {/* Tabs */}
       <div className="flex border-b border-border">
         {[
-          { id: "openclaw" as const, label: "🦞 OpenClaw", icon: Globe },
+          { id: "openclaw" as const, label: "Nexus", icon: Globe },
           { id: "channels" as const, label: "Channels", icon: MessageSquare },
           { id: "ai" as const, label: "AI Config", icon: Key },
         ].map((tab) => (
@@ -371,8 +371,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                       gwStatus !== "running"
                         ? "bg-secondary text-muted-foreground cursor-not-allowed"
                         : isPairing
-                        ? "bg-primary/50 cursor-not-allowed"
-                        : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+                          ? "bg-primary/50 cursor-not-allowed"
+                          : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
                     )}
                   >
                     {isPairing ? (

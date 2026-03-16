@@ -84,11 +84,10 @@ async def health_check():
 
 def main():
     uvicorn.run(
-        "src.main:app",
-        host="0.0.0.0",
+        app,
+        host="127.0.0.1",
         port=8000,
-        reload=False,
-        loop="asyncio"
+        log_level="info"
     )
 
 if __name__ == "__main__":

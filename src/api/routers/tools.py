@@ -34,10 +34,28 @@ async def list_files(directory: str = Query(".", description="Directory to list"
 
 @router.post("/browser/browse")
 async def browse_url(req: BrowseRequest):
-    """Placeholder for browser control. In this architecture, browser tasks are usually routed via chat."""
-    # For now, we'll return a message that the agent can handle this via the main chat.
-    # In the future, this could trigger a specific Playwright instance.
+    """Placeholder for browser control."""
     return {
         "success": True, 
-        "message": f"Browser request for {req.url} received. Please use the main chat for interactive browsing."
+        "message": f"Browser request for {req.url} received."
     }
+
+# --- Desktop Management ---
+
+class DesktopAppRequest(BaseModel):
+    app_name: str
+
+@router.get("/desktop/processes")
+async def list_processes():
+    from src.capabilities.desktop import list_processes as lp
+    return {"processes": lp()}
+
+@router.post("/desktop/open")
+async def open_desktop_app(req: DesktopAppRequest):
+    from src.capabilities.desktop import open_app
+    return open_app(req.app_name)
+
+@router.post("/desktop/close")
+async def close_desktop_app(req: DesktopAppRequest):
+    from src.capabilities.desktop import close_app
+    return close_app(req.app_name)
