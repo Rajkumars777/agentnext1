@@ -78,3 +78,18 @@ def open_app(app_name: str) -> dict:
     except Exception as e:
         logger.error(f"Failed to open {app_name}: {e}")
         return {"success": False, "message": f"Failed to launch '{app_name}': {str(e)}"}
+
+def open_path(path: str) -> dict:
+    """Open a file or directory path on the system."""
+    logger.info(f"Attempting to open path: {path}")
+    try:
+        # Resolve to absolute path
+        abs_path = os.path.abspath(path)
+        if os.path.exists(abs_path):
+            os.startfile(abs_path)
+            return {"success": True, "message": f"Opened path: {abs_path}"}
+        else:
+            return {"success": False, "message": f"Path not found: {abs_path}"}
+    except Exception as e:
+        logger.error(f"Failed to open path {path}: {e}")
+        return {"success": False, "message": f"Failed to open path: {str(e)}"}

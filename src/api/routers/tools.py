@@ -59,3 +59,11 @@ async def open_desktop_app(req: DesktopAppRequest):
 async def close_desktop_app(req: DesktopAppRequest):
     from src.capabilities.desktop import close_app
     return close_app(req.app_name)
+
+class OpenPathRequest(BaseModel):
+    path: str
+
+@router.post("/desktop/open-path")
+async def open_system_path(req: OpenPathRequest):
+    from src.capabilities.desktop import open_path
+    return open_path(req.path)

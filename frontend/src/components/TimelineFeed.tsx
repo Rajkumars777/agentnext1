@@ -9,6 +9,7 @@ import rehypeRaw from "rehype-raw";
 import React, { useState, useEffect } from "react";
 // Dynamic import for Tauri to avoid SSR issues
 import dynamic from 'next/dynamic';
+import { openPath } from "@/lib/api";
 
 export type Step = {
     type: "Reasoning" | "Decision" | "Action" | "User";
@@ -26,9 +27,10 @@ export type Step = {
 interface TimelineFeedProps {
     steps: Step[];
     onOptionSelect?: (value: string) => void;
+    onEdit?: (content: string) => void; // Added onEdit prop
 }
 
-export function TimelineFeed({ steps, onOptionSelect }: TimelineFeedProps) {
+export function TimelineFeed({ steps, onOptionSelect, onEdit }: TimelineFeedProps) {
     if (steps.length === 0) return null;
 
     // Group steps: A sequence of AI steps following a User message (or starting the chat)
@@ -95,7 +97,66 @@ export function TimelineFeed({ steps, onOptionSelect }: TimelineFeedProps) {
                                             remarkPlugins={[remarkGfm]}
                                             rehypePlugins={[rehypeRaw]}
                                             components={{
-                                                p: (props) => <p {...props} className="mb-2 last:mb-0" />,
+                                                p: (props) => {
+                                                    // Function to wrap paths/filenames in clickable spans
+                                                    const linkify = (text: string) => {
+                                                        if (typeof text !== 'string') return text;
+                                                        
+                                                        // Regex for Windows paths and filenames with specific common extensions
+                                                        // Using negative lookahead to avoid matching common words that might look like files
+                                                        const pathRegex = /([a-zA-Z]:\\[\\\w\s.-]+|\b[\w.-]+\.(?:pdf|txt|png|jpg|jpeg|docx|xlsx|exe|md)\b)/g;
+                                                        const parts = text.split(pathRegex);
+                                                        const matches = text.match(pathRegex);
+                                                        
+                                                        if (!matches) return text;
+                                                        
+                                                        const result: (string | React.ReactNode)[] = [];
+                                                        let matchIndex = 0;
+                                                        
+                                                        parts.forEach((part, i) => {
+                                                            if (matchIndex < matches.length && matches[matchIndex] === part) {
+                                                                const path = part;
+                                                                result.push(
+                                                                    <span 
+                                                                        key={i}
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            e.stopPropagation();
+                                                                            console.log("Opening path:", path);
+                                                                            openPath(path).catch(console.error);
+                                                                        }}
+                                                                        className="text-blue-500 hover:text-blue-400 font-bold underline cursor-pointer decoration-dotted underline-offset-4 bg-blue-500/10 px-1 rounded-sm border border-blue-500/20"
+                                                                        title={`Click to open ${path}`}
+                                                                    >
+                                                                        {part}
+                                                                    </span>
+                                                                );
+                                                                matchIndex++;
+                                                            } else {
+                                                                result.push(part);
+                                                            }
+                                                        });
+                                                        
+                                                        return result;
+                                                    };
+
+                                                    // Recursively process children to find text nodes
+                                                    const processChildren = (children: any): any => {
+                                                        return React.Children.map(children, (child) => {
+                                                            if (typeof child === 'string') {
+                                                                return linkify(child);
+                                                            }
+                                                            if (React.isValidElement(child) && (child.props as any).children) {
+                                                                return React.cloneElement(child, {
+                                                                    children: processChildren((child.props as any).children)
+                                                                } as any);
+                                                            }
+                                                            return child;
+                                                        });
+                                                    };
+
+                                                    return <p className="mb-2 last:mb-0">{processChildren(props.children)}</p>;
+                                                },
                                                 strong: (props) => <strong {...props} className={cn("font-bold", isUser ? "text-white" : "text-primary")} />,
                                             }}
                                         >
@@ -112,9 +173,19 @@ export function TimelineFeed({ steps, onOptionSelect }: TimelineFeedProps) {
 
                                     {/* Metadata Footer */}
                                     <div className={cn(
-                                        "mt-2 flex items-center gap-2 opacity-30 text-[9px] font-mono",
+                                        "mt-2 flex items-center gap-3 opacity-30 text-[9px] font-mono",
                                         isUser ? "justify-end text-primary-foreground" : "justify-start text-foreground"
                                     )}>
+                                        {isUser && onEdit && (
+                                            <button 
+                                                onClick={() => onEdit(latestStep.content)}
+                                                className="hover:opacity-100 transition-opacity flex items-center gap-1 group/edit"
+                                                title="Edit and retry"
+                                            >
+                                                <Edit2 className="w-2.5 h-2.5 group-hover/edit:scale-110 transition-transform" />
+                                                <span className="opacity-0 group-hover/edit:opacity-100 transition-opacity">EDIT</span>
+                                            </button>
+                                        )}
                                         <span>{latestStep.timestamp}</span>
                                     </div>
                                 </div>

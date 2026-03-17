@@ -19,17 +19,30 @@ export function InputConsole({ onSend, loading, lastCommand }: InputConsoleProps
     const [isRecording, setIsRecording] = useState(false);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
-    const inputRef = useRef<HTMLInputElement>(null);
-
-
+    const inputRef = useRef<HTMLTextAreaElement>(null);
+    const appliedCommandRef = useRef("");
 
     // When lastCommand changes (user clicked Edit), populate input
     useEffect(() => {
-        if (lastCommand && !loading) {
+        if (lastCommand && lastCommand !== appliedCommandRef.current && !loading) {
             setInput(lastCommand);
-            inputRef.current?.focus();
+            appliedCommandRef.current = lastCommand;
+            if (inputRef.current) {
+                inputRef.current.focus();
+                // Reset height for the text
+                inputRef.current.style.height = 'auto';
+                inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+            }
         }
     }, [lastCommand, loading]);
+
+    // Auto-resize effect
+    useEffect(() => {
+        if (inputRef.current) {
+            inputRef.current.style.height = 'auto';
+            inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+        }
+    }, [input]);
 
 
     const handleSubmit = (e?: React.FormEvent) => {
@@ -125,6 +138,13 @@ export function InputConsole({ onSend, loading, lastCommand }: InputConsoleProps
         }
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit();
+        }
+    };
+
 
 
     return (
@@ -142,7 +162,7 @@ export function InputConsole({ onSend, loading, lastCommand }: InputConsoleProps
                     onSubmit={handleSubmit}
                     className={cn(
                         "relative flex items-center gap-3 p-1.5 rounded-[1.5rem] border transition-all duration-500",
-                        "glass-pane",
+                        "glass-pane items-end", // Changed items-center to items-end for better multi-line look
                         isFocused
                             ? "border-primary/40 shadow-[0_0_30px_-10px_oklch(0.68_0.28_280/0.3)] scale-[1.005]"
                             : "border-border/60 hover:border-border/80"
@@ -153,7 +173,7 @@ export function InputConsole({ onSend, loading, lastCommand }: InputConsoleProps
                 >
                     {/* Visual Anchor / Icon */}
                     <div className={cn(
-                        "ml-2 p-2 rounded-full transition-all duration-500",
+                        "ml-2 mb-2 p-2 rounded-full transition-all duration-500", // Added mb-2
                         isFocused
                             ? "bg-primary/15 text-primary scale-105 rotate-6"
                             : "bg-secondary text-muted-foreground/60"
@@ -161,18 +181,22 @@ export function InputConsole({ onSend, loading, lastCommand }: InputConsoleProps
                         <Command className="w-4 h-4" />
                     </div>
 
-                    <input
+                    <textarea
                         ref={inputRef}
-                        type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
                         onFocus={() => setIsFocused(true)}
                         onBlur={() => setIsFocused(false)}
                         placeholder={isRecording ? "🎤 Listening..." : "Ask NEXUS to do anything..."}
-                        className="flex-1 bg-transparent border-none outline-none text-base placeholder:text-muted-foreground/40 py-2.5 text-foreground font-normal tracking-tight outline-none focus:ring-0"
+                        className={cn(
+                            "flex-1 bg-transparent border-none outline-none text-base placeholder:text-muted-foreground/40 py-3 text-foreground font-normal tracking-tight focus:ring-0 resize-none",
+                            "min-h-[44px] max-h-[200px] overflow-y-auto custom-scrollbar"
+                        )}
+                        rows={1}
                     />
 
-                    <div className="mr-1 flex items-center gap-2">
+                    <div className="mr-1 mb-1.5 flex items-center gap-2"> {/* Added mb-1.5 */}
                         {/* Voice Button */}
                         <button
                             type="button"

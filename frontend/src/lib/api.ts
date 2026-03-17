@@ -14,7 +14,7 @@ export async function getApiBase(): Promise<string> {
 
     // Fallback for web-only development
     if (typeof window !== "undefined") {
-        resolvedApiBase = "http://127.0.0.1:8000";
+        resolvedApiBase = "http://localhost:8000";
         return resolvedApiBase;
     }
 
@@ -225,6 +225,52 @@ export async function saveOpenClawConfig(config: unknown) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config),
+    });
+    await checkResponse(res);
+    return res.json();
+}
+export async function getHistory() {
+    const base = await getApiBase();
+    const res = await fetch(`${base}/agent/history`);
+    await checkResponse(res);
+    return res.json();
+}
+
+export async function saveHistory(history: string[]) {
+    const base = await getApiBase();
+    const res = await fetch(`${base}/agent/history`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ history }),
+    });
+    await checkResponse(res);
+    return res.json();
+}
+
+export async function getFolders() {
+    const base = await getApiBase();
+    const res = await fetch(`${base}/agent/folders`);
+    await checkResponse(res);
+    return res.json();
+}
+
+export async function saveFolders(folders: any[]) {
+    const base = await getApiBase();
+    const res = await fetch(`${base}/agent/folders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folders }),
+    });
+    await checkResponse(res);
+    return res.json();
+}
+
+export async function openPath(path: string) {
+    const base = await getApiBase();
+    const res = await fetch(`${base}/tools/desktop/open-path`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
     });
     await checkResponse(res);
     return res.json();

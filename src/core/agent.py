@@ -45,6 +45,27 @@ async def run_agent(user_input: str, task_id: str = "default", channel: str = "n
     Routes user input through OpenClaw Local Gateway via WebSocket RPC.
     """
     from src.api.routers.events import emit_event
+    
+    # ── Workspace Remapping ──────────────────────────────────────────────────
+    # ── System Folders ───────────────────────────────────────────────────────
+    # Use actual system folders from the user profile
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    user_home = os.path.expanduser("~")
+    workspace_instruction = (
+        f"IMPORTANT: The user workspace logic remains in '{project_root}', but "
+        "always use these ACTUAL system folders for user files:\n"
+        f"- Desktop: {os.path.join(user_home, 'Desktop')}\n"
+        f"- Downloads: {os.path.join(user_home, 'Downloads')}\n"
+        f"- Documents: {os.path.join(user_home, 'Documents')}\n"
+        f"- Music: {os.path.join(user_home, 'Music')}\n"
+        f"- Videos: {os.path.join(user_home, 'Videos')}\n"
+        f"- Pictures: {os.path.join(user_home, 'Pictures')}\n"
+        "ALWAYS use these system paths when the user refers to these folders. "
+        "Do NOT use project-local 'src/Downloads' etc.\n\n"
+    )
+    
+    contextualized_input = workspace_instruction + user_input
+    
     await emit_event(task_id, "Thinking", {"message": f"Analyzing: {user_input}"})
 
     # ── Local Desktop Intention Detection (Basic) ─────────────────────────
@@ -86,7 +107,7 @@ async def run_agent(user_input: str, task_id: str = "default", channel: str = "n
 
     await emit_event(task_id, "AgentStep", {"desc": f"Wait for a moment({channel})..."})
 
-    result_text = await asyncio.to_thread(send_to_openclaw, user_input, channel=channel, sender=sender)
+    result_text = await asyncio.to_thread(send_to_openclaw, contextualized_input, channel=channel, sender=sender)
 
     # If OpenClaw returned any error
     if result_text.startswith("❌"):

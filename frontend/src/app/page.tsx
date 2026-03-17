@@ -8,7 +8,7 @@ import { RecentsHistory } from "@/components/RecentsHistory";
 import BrowserViewport from "@/components/BrowserViewport";
 import { SettingsPanel } from "@/components/SettingsPanel";
 
-import { chatWithAgent, cancelOperation, generateTaskId, resumeTask } from "@/lib/api";
+import { chatWithAgent, cancelOperation, generateTaskId, resumeTask, getHistory, getFolders } from "@/lib/api";
 import { useWebsocket, WebSocketEvent } from "@/hooks/useWebsocket";
 import { motion, AnimatePresence } from "framer-motion";
 import { StopCircle, Edit3, RotateCcw, Globe, Sun, Moon, Settings } from "lucide-react";
@@ -25,6 +25,21 @@ export default function Dashboard() {
   const [isDark, setIsDark] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [folders, setFolders] = useState<any[]>([]);
+
+  // Load history and folders on mount
+  useEffect(() => {
+    const loadMemory = async () => {
+      try {
+        const [historyRes, foldersRes] = await Promise.all([getHistory(), getFolders()]);
+        if (historyRes.history) setHistory(historyRes.history);
+        if (foldersRes.folders) setFolders(foldersRes.folders);
+      } catch (err) {
+        console.error("Failed to load memory:", err);
+      }
+    };
+    loadMemory();
+  }, []);
 
   // Sync theme with document class
   useEffect(() => {
@@ -110,7 +125,7 @@ export default function Dashboard() {
 
     setLoading(true);
     setCancelled(false);
-    setLastCommand(input);
+    setLastCommand("");
 
     const timestamp = new Date().toLocaleTimeString();
     
@@ -153,6 +168,14 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
       setTimeout(() => setActiveTaskId(null), 2000);
+      
+      // Refresh history from backend to ensure last 10 limit is applied
+      try {
+        const historyRes = await getHistory();
+        if (historyRes.history) setHistory(historyRes.history);
+      } catch (err) {
+        console.error("Failed to refresh history:", err);
+      }
     }
   };
 
@@ -308,7 +331,14 @@ export default function Dashboard() {
         steps.length > 0 ? "opacity-100" : "opacity-0 pointer-events-none"
       )}>
         <div className="w-full h-full overflow-y-auto pb-48 pt-4 custom-scrollbar">
-          <TimelineFeed steps={steps} onOptionSelect={handleOptionSelect} />
+          <TimelineFeed 
+            steps={steps} 
+            onOptionSelect={handleOptionSelect} 
+            onEdit={(content) => {
+              setLastCommand(""); // Force re-trigger of useEffect in InputConsole
+              setTimeout(() => setLastCommand(content), 10);
+            }}
+          />
         </div>
       </div>
       {/* History Sidebar Drawer */}
@@ -345,16 +375,23 @@ export default function Dashboard() {
                   </div>
 
                   {/* Drawer Content */}
-                  <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    <RecentsHistory
-                      recents={history}
-                      onSelect={(cmd) => {
-                        handleSend(cmd);
-                        setIsHistoryOpen(false);
-                      }}
-                    // TODO: Add onDelete and onFolderMove handlers here in next step
-                    />
-                  </div>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                      <RecentsHistory
+                        recents={history}
+                        folders={folders}
+                        onFoldersChange={setFolders}
+                        onHistoryChange={setHistory}
+                        onSelect={(cmd) => {
+                          handleSend(cmd);
+                          setIsHistoryOpen(false);
+                        }}
+                        onEdit={(cmd) => {
+                          setLastCommand("");
+                          setTimeout(() => setLastCommand(cmd), 10);
+                          setIsHistoryOpen(false);
+                        }}
+                      />
+                    </div>
                 </div>
               </motion.div>
             </>
